@@ -3,44 +3,37 @@ var client = new Discord.Client()
 const moment = require('moment')
 const fetch = require('node-fetch')
 const jsonfile = require('jsonfile')
+const config = require("./settings.json")
 
-
-
-// Bot settings
-const prefix = '/'; // The prefix used to control the bot in the chat
-const token = 'YOUR_TOKEN_HERE'; // The token the bot will use to log in
-const currencies = ['BTC', 'ETH', 'XRP', 'LTC', 'DASH', 'ETC', 'XMR', 'MAID', 'STRAT']; // Here you can change the crypto currencies, the bot will check
-const translatedInto = ['EUR', 'USD']; // Here you can change the currencies, the bot will translate the crypto currencies into
-const armed = ["85128690765144064"]; // ID of users that are allowed to use the autoupdate-function
-const aa_delay = '30000'; // The delay that will be used in the auto-update function of the bot
-// End of settings
-
-
-
-const requestMap = () => currencies.map(currency => {
-    const requestString = `https://min-api.cryptocompare.com/data/price?fsym=${currency}&tsyms=${translatedInto.join(',')}`;
+const requestMap = () => config.currencies.map(currency => {
+    const requestString = `https://min-api.cryptocompare.com/data/price?fsym=${currency}&tsyms=${config.translatedInto.join(',')}`;
     return fetch(requestString);
 });
 
 client.on('message', msg => {
-    if (msg.content.toLowerCase() == prefix + "cc")
+    if (msg.author.bot) return;
+    if(msg.content.indexOf(config.prefix) !== 0) return;
+    const args = msg.content.slice(config.prefix.length).trim().split(/ +/g);
+    const command = args.shift().toLowerCase();
+    if (command === "cc"){
+      const translatedInto = config.translatedInto;
         Promise.all(requestMap())
         .then(e => Promise.all(e.map(single => single.json())))
         .then(e => {
             const resolvedCurrencies = e.map((single, index) => ({
-                from: currencies[index],
+                from: config.currencies[index],
                 resp: single
             }))
             // ALRIGHT! Now it's gettin' tricky. Just leave everything below this point if you don't 100% know what you're doing.
-            const firstExchange = "**" + resolvedCurrencies[0].resp["EUR"] + " EUR** or **" + resolvedCurrencies[0].resp["USD"] + " USD**"
-            const secondExchange = "**" + resolvedCurrencies[1].resp["EUR"] + " EUR** or **" + resolvedCurrencies[1].resp["USD"] + " USD**"
-            const thirdExchange = "**" + resolvedCurrencies[2].resp["EUR"] + " EUR** or **" + resolvedCurrencies[2].resp["USD"] + " USD**"
-            const fourthExchange = "**" + resolvedCurrencies[3].resp["EUR"] + " EUR** or **" + resolvedCurrencies[3].resp["USD"] + " USD**"
-            const fifthExchange = "**" + resolvedCurrencies[4].resp["EUR"] + " EUR** or **" + resolvedCurrencies[4].resp["USD"] + " USD**"
-            const sixthExchange = "**" + resolvedCurrencies[5].resp["EUR"] + " EUR** or **" + resolvedCurrencies[5].resp["USD"] + " USD**"
-            const seventhExchange = "**" + resolvedCurrencies[6].resp["EUR"] + " EUR** or **" + resolvedCurrencies[6].resp["USD"] + " USD**"
-            const eighthExchange = "**" + resolvedCurrencies[7].resp["EUR"] + " EUR** or **" + resolvedCurrencies[7].resp["USD"] + " USD**"
-            const ninthExchange = "**" + resolvedCurrencies[8].resp["EUR"] + " EUR** or **" + resolvedCurrencies[8].resp["USD"] + " USD**"
+            const firstExchange = "**" + resolvedCurrencies[0].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[0].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
+            const secondExchange = "**" + resolvedCurrencies[1].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[1].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
+            const thirdExchange = "**" + resolvedCurrencies[2].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[2].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
+            const fourthExchange = "**" + resolvedCurrencies[3].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[3].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
+            const fifthExchange = "**" + resolvedCurrencies[4].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[4].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
+            const sixthExchange = "**" + resolvedCurrencies[5].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[5].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
+            const seventhExchange = "**" + resolvedCurrencies[6].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[6].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
+            const eighthExchange = "**" + resolvedCurrencies[7].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[7].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
+            const ninthExchange = "**" + resolvedCurrencies[8].resp[config.translatedInto[0]] + " " + config.translatedInto[0] + "** or **" + resolvedCurrencies[8].resp[config.translatedInto[1]] + " " + config.translatedInto[1] + "**"
 
             let embed = {
                 color: 0x7289DA,
@@ -103,10 +96,39 @@ client.on('message', msg => {
         .catch(error => {
             console.log(error);
         });
+    }else if (command === "status") {
+        if (checkArmed(config.armed, msg.author.id)){
+        Promise.all(requestMap())
+            .then(e => Promise.all(e.map(single => single.json())))
+            .then(e => {
+                const resolvedCurrencies = e.map((single, index) => ({
+                    from: config.currencies[index],
+                    resp: single
+                }))
+                let status = resolvedCurrencies[0].resp[config.translatedInto[0]] + config.translatedInto[0]
 
+                msg.channel.send(`Bot up and running! :blush:`);
+                msg.channel.send(`By the way, did you know that one Bitcoin is worth **` + status + `** right now? :fire:`)
+            })
+            .catch(error => {
+                console.log(error);
+            });
+        }
+
+    }else if (command === "say") {
+        // makes the bot say something and delete the message. As an example, it's open to anyone to use.
+        // To get the "message" itself we join the `args` back into a string with spaces:
+        const sayMessage = args.join(" ");
+        // Then we delete the command message (sneaky, right?). The catch just ignores the error with a cute smiley thing.
+        msg.delete().catch(O_o=>{});
+        // And we get the bot to say the thing:
+        msg.channel.send(sayMessage);
+    }
 });
 
-
+function checkArmed(arr, val) {
+    return arr.some(arrVal => val === arrVal);
+  }
 
 // Every time "gameupdate()" is called, the bot will update its status and display the current Bitcoin exchange!
 
@@ -115,32 +137,16 @@ function gameupdate() {
         .then(e => Promise.all(e.map(single => single.json())))
         .then(e => {
             const resolvedCurrencies = e.map((single, index) => ({
-                from: currencies[index],
+                from: config.currencies[index],
                 resp: single
             }))
-            const status = resolvedCurrencies[0].resp["EUR"] + "€"
+            const status = resolvedCurrencies[0].resp[config.translatedInto[0]] + config.translatedInto[0]//"â‚¬"
             client.user.setGame("BTC @ " + status);
         })
 };
 
 
 
-client.on("message", (msg) => {
-    if (msg.content.toLowerCase() == (prefix + "status")) {
-        Promise.all(requestMap())
-            .then(e => Promise.all(e.map(single => single.json())))
-            .then(e => {
-                const resolvedCurrencies = e.map((single, index) => ({
-                    from: currencies[index],
-                    resp: single
-                }))
-                const status = resolvedCurrencies[0].resp["EUR"] + "€"
-
-                msg.channel.send(`Bot up and running! :blush:`);
-                msg.channel.send(`By the way, did you know that one Bitcoin is worth **` + status + `** right now? :fire:`)
-            })
-    }
-});
 
 
 client.on('ready', function() {
@@ -149,15 +155,17 @@ client.on('ready', function() {
     console.log('|                                                    |');
     console.log('|   CryptoCurrency(-Bot) online and ready to use!    |');
     console.log('|         - Current Verison: 2.6 by 4dams -          |');
-    console.log('|                Contact: 4dams#3082                 |');
+    console.log('|                Contact: 4dams#0001                 |');
+    console.log('|           Revision by scott Green#8976             |');
+    console.log('|        some code stolen from eslachance#4611       |');
     console.log('|                                                    |');
     console.log('|----------------------------------------------------|');
-    console.log('| Autoupdater requested.                             |');
-    console.log('|----------------------------------------------------|')
-    setInterval(function() { // Starts the auto update of the bot
+    setInterval(function() { // Starts the status autoupdate of the bot
         gameupdate();
-    }, aa_delay) // Searches for the delay of the autoupdate in the bot settings
+    }, config.status_delay) // Searches for the delay of the autoupdate in the bot settings
+    console.log('| Autoupdate requested.                             |');
+    console.log('|----------------------------------------------------|')
 
 });
 
-client.login(token);
+client.login(config.token);

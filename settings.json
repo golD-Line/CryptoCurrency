@@ -1,0 +1,8 @@
+{
+  "prefix" : "/",
+  "token" : "YOUR_FANCY_SCHMANCY_TOKEN",
+  "currencies" : ["BTC", "ETH", "XRP", "LTC", "DASH", "ETC", "XMR", "MAID", "STRAT"],
+  "translatedInto" : ["USD", "AUD"],
+  "armed" : ["255923384641257472", "250647621163548672"],
+  "status_delay" : "60000"
+}
